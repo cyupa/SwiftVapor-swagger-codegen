@@ -7,32 +7,53 @@
 
 {{#operation}}
 
-public enum {{operationId}}Response: ResponseEncodable {
+public enum {{#lambdaTitlecase}}{{operationId}}{{/lambdaTitlecase}}Response: ResponseEncodable {
 {{#responses}}  case http{{code}}{{#hasHeaders}}({{#headers}}{{name}}: {{datatype}}{{^required}}?{{/required}}{{#hasMore}}, {{/hasMore}}{{/headers}}){{/hasHeaders}}{{#dataType}}({{dataType}}){{/dataType}}
 {{/responses}}
 
-  public func encode(for request: Request) throws -> EventLoopFuture<Response> {
-    let response = request.response()
+  /**
+	Encodes a response for {{httpMethod}} {{{path}}}{{#notes}}
+    {{{notes}}}{{/notes}}
+  - parameter request: The request instance for which the response will be encoded.
+  - returns: EventLoopFuture<Response> instance.
+  */
+  public func encodeResponse(for request: Request) -> EventLoopFuture<Response> {
+    let future: EventLoopFuture<Response>
     switch self {
-{{#responses}}    case .http{{code}}{{#hasHeaders}}({{#headers}}let {{name}}{{#hasMore}}, {{/hasMore}}{{/headers}}){{/hasHeaders}}{{#dataType}}(let content){{/dataType}}:
-{{#hasHeaders}}{{#headers}}      if let {{name}} = {{name}} {
-        response.http.headers.add(name: "{{{baseName}}}", value: {{name}})
+{{#responses}}
+    case .http{{code}}{{#hasHeaders}}({{#headers}}let {{name}}{{#hasMore}}, {{/hasMore}}{{/headers}}){{/hasHeaders}}{{#dataType}}(let content){{/dataType}}:
+      let status = HTTPStatus(statusCode: {{code}})
+{{#hasHeaders}}
+      let headers: [(String, String)] = []
+{{#headers}}      if let {{name}} = {{name}} {
+        headers.append(("{{{baseName}}}",{{name}}))
       }
-{{/headers}}{{/hasHeaders}}      response.http.status = HTTPStatus(statusCode: {{code}})
-{{#dataType}}      try response.content.encode(content)
-{{/dataType}}{{/responses}}
+{{/headers}}
+      let headersHttp = HTTPHeaders(headers)
+{{/hasHeaders}}
+{{#hasHeaders}}
+      future = content.encodeResponse(status: status, headers: headersHttp, for: request)
+{{/hasHeaders}}
+{{^hasHeaders}}
+{{#dataType}}
+      future = content.encodeResponse(status: status, for: request)
+{{/dataType}}
+{{^dataType}}
+      furtue = status.encodeResponse(for: request)
+{{/dataType}}
+{{/hasHeaders}}
+{{/responses}}
     }
-    return Future.map(on: request) { response }
+    return future
   }
 }
 
 {{/operation}}
 public protocol {{classname}} {
-{{#operation}}{{#contents}}  /**
+{{#operation}}{{#contents}} /**
 	{{httpMethod}} {{{path}}}{{#notes}}
-    {{{notes}}}{{/notes}} */
-    
-    func {{operationId}}(with req: Request{{#hasParams}}, {{#parameters}}{{paramName}}: {{dataType}}{{^required}}?{{/required}}{{#hasMore}}, {{/hasMore}}{{/parameters}}{{/hasParams}}) throws -> Future<{{operationId}}Response>
+    {{{notes}}}{{/notes}} */  
+  func {{operationId}}(with req: Request{{#hasParams}}, {{#parameters}}{{paramName}}: {{dataType}}{{^required}}?{{/required}}{{#hasMore}}, {{/hasMore}}{{/parameters}}{{/hasParams}}) throws -> EventLoopFuture<{{operationId}}Response>
 {{/contents}}{{/operation}}
 }
 {{/operations}}

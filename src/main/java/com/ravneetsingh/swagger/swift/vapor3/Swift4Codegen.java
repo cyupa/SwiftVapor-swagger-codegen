@@ -5,152 +5,171 @@ import io.swagger.codegen.v3.CodegenConstants;
 import io.swagger.codegen.v3.CodegenModel;
 import io.swagger.codegen.v3.CodegenProperty;
 import io.swagger.codegen.v3.SupportingFile;
+import io.swagger.codegen.v3.templates.MustacheTemplateEngine;
+import io.swagger.codegen.v3.templates.TemplateEngine;
 import org.apache.commons.lang3.StringUtils;
 
+import io.swagger.codegen.v3.CodegenConfig;
+
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-public class Swift4Codegen extends AbstractSwiftCodegen {
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
+import com.samskivert.mustache.Template.Fragment;
 
-    public Swift4Codegen() {
-        super();
+public class Swift4Codegen extends AbstractSwiftCodegen implements CodegenConfig {
 
-        reservedWords = new HashSet<>(
-                Arrays.asList(
-                        // name used by swift client
-                        "ErrorResponse", "Response",
+        public Swift4Codegen() {
+                super();
 
-                        // Added for Objective-C compatibility
-                        "id", "description", "NSArray", "NSURL", "CGFloat", "NSSet", "NSString", "NSInteger", "NSUInteger",
-                        "NSError", "NSDictionary",
+                reservedWords = new HashSet<>(Arrays.asList(
+                                // name used by swift client
+                                "ErrorResponse", "Response",
 
-                        //
-                        // Swift keywords. This list is taken from here:
-                        // https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/LexicalStructure.html#//apple_ref/doc/uid/TP40014097-CH30-ID410
-                        //
-                        // Keywords used in declarations
-                        "associatedtype", "class", "deinit", "enum", "extension", "fileprivate", "func", "import", "init",
-                        "inout", "internal", "let", "open", "operator", "private", "protocol", "public", "static", "struct",
-                        "subscript", "typealias", "var",
-                        // Keywords uses in statements
-                        "break", "case", "continue", "default", "defer", "do", "else", "fallthrough", "for", "guard", "if",
-                        "in", "repeat", "return", "switch", "where", "while",
-                        // Keywords used in expressions and types
-                        "as", "Any", "catch", "false", "is", "nil", "rethrows", "super", "self", "Self", "throw", "throws", "true", "try",
-                        // Keywords used in patterns
-                        "_",
-                        // Keywords that begin with a number sign
-                        "#available", "#colorLiteral", "#column", "#else", "#elseif", "#endif", "#file", "#fileLiteral", "#function", "#if",
-                        "#imageLiteral", "#line", "#selector", "#sourceLocation",
-                        // Keywords reserved in particular contexts
-                        "associativity", "convenience", "dynamic", "didSet", "final", "get", "infix", "indirect", "lazy", "left",
-                        "mutating", "none", "nonmutating", "optional", "override", "postfix", "precedence", "prefix", "Protocol",
-                        "required", "right", "set", "Type", "unowned", "weak", "willSet",
+                                // Added for Objective-C compatibility
+                                "id", "description", "NSArray", "NSURL", "CGFloat", "NSSet", "NSString", "NSInteger",
+                                "NSUInteger", "NSError", "NSDictionary",
 
-                        //
-                        // Swift Standard Library types
-                        // https://developer.apple.com/documentation/swift
-                        //
-                        // Numbers and Basic Values
-                        "Bool", "Int", "Double", "Float", "Range", "ClosedRange", "Error", "Optional",
-                        // Special-Use Numeric Types
-                        "UInt", "UInt8", "UInt16", "UInt32", "UInt64", "Int8", "Int16", "Int32", "Int64", "Float80", "Float32", "Float64",
-                        // Strings and Text
-                        "String", "Character", "Unicode", "StaticString",
-                        // Collections
-                        "Array", "Dictionary", "Set", "OptionSet", "CountableRange", "CountableClosedRange",
+                                //
+                                // Swift keywords. This list is taken from here:
+                                // https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/LexicalStructure.html#//apple_ref/doc/uid/TP40014097-CH30-ID410
+                                //
+                                // Keywords used in declarations
+                                "associatedtype", "class", "deinit", "enum", "extension", "fileprivate", "func",
+                                "import", "init", "inout", "internal", "let", "open", "operator", "private", "protocol",
+                                "public", "static", "struct", "subscript", "typealias", "var",
+                                // Keywords uses in statements
+                                "break", "case", "continue", "default", "defer", "do", "else", "fallthrough", "for",
+                                "guard", "if", "in", "repeat", "return", "switch", "where", "while",
+                                // Keywords used in expressions and types
+                                "as", "Any", "catch", "false", "is", "nil", "rethrows", "super", "self", "Self",
+                                "throw", "throws", "true", "try",
+                                // Keywords used in patterns
+                                "_",
+                                // Keywords that begin with a number sign
+                                "#available", "#colorLiteral", "#column", "#else", "#elseif", "#endif", "#file",
+                                "#fileLiteral", "#function", "#if", "#imageLiteral", "#line", "#selector",
+                                "#sourceLocation",
+                                // Keywords reserved in particular contexts
+                                "associativity", "convenience", "dynamic", "didSet", "final", "get", "infix",
+                                "indirect", "lazy", "left", "mutating", "none", "nonmutating", "optional", "override",
+                                "postfix", "precedence", "prefix", "Protocol", "required", "right", "set", "Type",
+                                "unowned", "weak", "willSet",
 
-                        // The following are commonly-used Foundation types
-                        "URL", "Data", "Codable", "Encodable", "Decodable",
+                                //
+                                // Swift Standard Library types
+                                // https://developer.apple.com/documentation/swift
+                                //
+                                // Numbers and Basic Values
+                                "Bool", "Int", "Double", "Float", "Range", "ClosedRange", "Error", "Optional",
+                                // Special-Use Numeric Types
+                                "UInt", "UInt8", "UInt16", "UInt32", "UInt64", "Int8", "Int16", "Int32", "Int64",
+                                "Float80", "Float32", "Float64",
+                                // Strings and Text
+                                "String", "Character", "Unicode", "StaticString",
+                                // Collections
+                                "Array", "Dictionary", "Set", "OptionSet", "CountableRange", "CountableClosedRange",
 
-                        // The following are other words we want to reserve
-                        "Void", "AnyObject", "Class", "dynamicType", "COLUMN", "FILE", "FUNCTION", "LINE"
-                )
-        );
+                                // The following are commonly-used Foundation types
+                                "URL", "Data", "Codable", "Encodable", "Decodable",
 
-        typeMapping = new HashMap<>();
-        typeMapping.put("array", "Array");
-        typeMapping.put("List", "Array");
-        typeMapping.put("map", "Dictionary");
-        typeMapping.put("date", "Date");
-        typeMapping.put("Date", "Date");
-        typeMapping.put("DateTime", "Date");
-        typeMapping.put("boolean", "Bool");
-        typeMapping.put("string", "String");
-        typeMapping.put("char", "Character");
-        typeMapping.put("short", "Int");
-        typeMapping.put("int", "Int");
-        typeMapping.put("long", "Int64");
-        typeMapping.put("integer", "Int");
-        typeMapping.put("Integer", "Int");
-        typeMapping.put("float", "Float");
-        typeMapping.put("number", "Double");
-        typeMapping.put("BigDecimal", "Decimal");
-        typeMapping.put("double", "Double");
-        typeMapping.put("object", "Any");
-        typeMapping.put("file", "URL");
-        typeMapping.put("binary", "Data");
-        typeMapping.put("ByteArray", "Data");
-        typeMapping.put("UUID", "UUID");
+                                // The following are other words we want to reserve
+                                "Void", "AnyObject", "Class", "dynamicType", "COLUMN", "FILE", "FUNCTION", "LINE"));
 
-        cliOptions.add(new CliOption(PROJECT_NAME, "Project name in Xcode"));
-        cliOptions.add(new CliOption(RESPONSE_AS,
-                "Optionally use libraries to manage response.  Currently "
-                        + StringUtils.join(RESPONSE_LIBRARIES, ", ")
-                        + " are available."));
-        cliOptions.add(new CliOption(UNWRAP_REQUIRED,
-                "Treat 'required' properties in response as non-optional "
-                        + "(which would crash the app if api returns null as opposed "
-                        + "to required option specified in json schema"));
-        cliOptions.add(new CliOption(OBJC_COMPATIBLE,
-                "Add additional properties and methods for Objective-C "
-                        + "compatibility (default: false)"));
-        cliOptions.add(new CliOption(POD_SOURCE, "Source information used for Podspec"));
-        cliOptions.add(new CliOption(CodegenConstants.POD_VERSION, "Version used for Podspec"));
-        cliOptions.add(new CliOption(POD_AUTHORS, "Authors used for Podspec"));
-        cliOptions.add(new CliOption(POD_SOCIAL_MEDIA_URL, "Social Media URL used for Podspec"));
-        cliOptions.add(new CliOption(POD_DOCSET_URL, "Docset URL used for Podspec"));
-        cliOptions.add(new CliOption(POD_LICENSE, "License used for Podspec"));
-        cliOptions.add(new CliOption(POD_HOMEPAGE, "Homepage used for Podspec"));
-        cliOptions.add(new CliOption(POD_SUMMARY, "Summary used for Podspec"));
-        cliOptions.add(new CliOption(POD_DESCRIPTION, "Description used for Podspec"));
-        cliOptions.add(new CliOption(POD_SCREENSHOTS, "Screenshots used for Podspec"));
-        cliOptions.add(new CliOption(POD_DOCUMENTATION_URL,
-                "Documentation URL used for Podspec"));
-        cliOptions.add(new CliOption(SWIFT_USE_API_NAMESPACE,
-                "Flag to make all the API classes inner-class "
-                        + "of {{projectName}}API"));
-        cliOptions.add(new CliOption(CodegenConstants.HIDE_GENERATION_TIMESTAMP,
-                        CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC)
-                .defaultValue(Boolean.TRUE.toString()));
-        cliOptions.add(new CliOption(LENIENT_TYPE_CAST,
-                "Accept and cast values for simple types (string->bool, "
-                        + "string->int, int->string)")
-                .defaultValue(Boolean.FALSE.toString()));
-    }
+                typeMapping = new HashMap<>();
+                typeMapping.put("array", "Array");
+                typeMapping.put("List", "Array");
+                typeMapping.put("map", "Dictionary");
+                typeMapping.put("date", "Date");
+                typeMapping.put("Date", "Date");
+                typeMapping.put("DateTime", "Date");
+                typeMapping.put("boolean", "Bool");
+                typeMapping.put("string", "String");
+                typeMapping.put("char", "Character");
+                typeMapping.put("short", "Int");
+                typeMapping.put("int", "Int");
+                typeMapping.put("long", "Int64");
+                typeMapping.put("integer", "Int");
+                typeMapping.put("Integer", "Int");
+                typeMapping.put("float", "Float");
+                typeMapping.put("number", "Double");
+                typeMapping.put("BigDecimal", "Decimal");
+                typeMapping.put("double", "Double");
+                typeMapping.put("object", "Any");
+                typeMapping.put("file", "URL");
+                typeMapping.put("binary", "Data");
+                typeMapping.put("ByteArray", "Data");
+                typeMapping.put("UUID", "UUID");
 
-    @Override
-    public String getName() {
-        return "swift4";
-    }
+                cliOptions.add(new CliOption(PROJECT_NAME, "Project name in Xcode"));
+                cliOptions.add(new CliOption(RESPONSE_AS, "Optionally use libraries to manage response.  Currently "
+                                + StringUtils.join(RESPONSE_LIBRARIES, ", ") + " are available."));
+                cliOptions.add(new CliOption(UNWRAP_REQUIRED,
+                                "Treat 'required' properties in response as non-optional "
+                                                + "(which would crash the app if api returns null as opposed "
+                                                + "to required option specified in json schema"));
+                cliOptions.add(new CliOption(OBJC_COMPATIBLE, "Add additional properties and methods for Objective-C "
+                                + "compatibility (default: false)"));
+                cliOptions.add(new CliOption(POD_SOURCE, "Source information used for Podspec"));
+                cliOptions.add(new CliOption(CodegenConstants.POD_VERSION, "Version used for Podspec"));
+                cliOptions.add(new CliOption(POD_AUTHORS, "Authors used for Podspec"));
+                cliOptions.add(new CliOption(POD_SOCIAL_MEDIA_URL, "Social Media URL used for Podspec"));
+                cliOptions.add(new CliOption(POD_DOCSET_URL, "Docset URL used for Podspec"));
+                cliOptions.add(new CliOption(POD_LICENSE, "License used for Podspec"));
+                cliOptions.add(new CliOption(POD_HOMEPAGE, "Homepage used for Podspec"));
+                cliOptions.add(new CliOption(POD_SUMMARY, "Summary used for Podspec"));
+                cliOptions.add(new CliOption(POD_DESCRIPTION, "Description used for Podspec"));
+                cliOptions.add(new CliOption(POD_SCREENSHOTS, "Screenshots used for Podspec"));
+                cliOptions.add(new CliOption(POD_DOCUMENTATION_URL, "Documentation URL used for Podspec"));
+                cliOptions.add(new CliOption(SWIFT_USE_API_NAMESPACE,
+                                "Flag to make all the API classes inner-class " + "of {{projectName}}API"));
+                cliOptions.add(new CliOption(CodegenConstants.HIDE_GENERATION_TIMESTAMP,
+                                CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC).defaultValue(Boolean.TRUE.toString()));
+                cliOptions.add(new CliOption(LENIENT_TYPE_CAST,
+                                "Accept and cast values for simple types (string->bool, " + "string->int, int->string)")
+                                                .defaultValue(Boolean.FALSE.toString()));
+        }
 
-    @Override
-    public void processOpts() {
-        super.processOpts();
+        @Override
+        public String getName() {
+                return "swift4";
+        }
 
-//        supportingFiles.add(new SupportingFile("CodableHelper.mustache",
-//                sourceFolder,
-//                "CodableHelper.swift"));
-//        supportingFiles.add(new SupportingFile("JSONEncodableEncoding.mustache",
-//                sourceFolder,
-//                "JSONEncodableEncoding.swift"));
-//        supportingFiles.add(new SupportingFile("JSONEncodingHelper.mustache",
-//                sourceFolder,
-//                "JSONEncodingHelper.swift"));
-    }
+        @Override
+        public void processOpts() {
+                super.processOpts();
+
+                // supportingFiles.add(new SupportingFile("CodableHelper.mustache",
+                // sourceFolder,
+                // "CodableHelper.swift"));
+                // supportingFiles.add(new SupportingFile("JSONEncodableEncoding.mustache",
+                // sourceFolder,
+                // "JSONEncodableEncoding.swift"));
+                // supportingFiles.add(new SupportingFile("JSONEncodingHelper.mustache",
+                // sourceFolder,
+                // "JSONEncodingHelper.swift"));
+            
+                additionalProperties.put("lambdaTitlecase", new Mustache.Lambda(){
+                    private String titleCase(final String input) {
+                            String output = input.substring(0, 1).toUpperCase() + input.substring(1);
+                            LOGGER.warn("lambdaTitlecase output:" + output);
+                            return output;
+                    }
+            
+                    @Override
+                    public void execute(Template.Fragment fragment, Writer writer) throws IOException {
+                            String text = fragment.execute();
+                            writer.write(titleCase(text));
+                    }
+                });
+        }
+
 
     @Override
     public Map<String, Object> postProcessModels(Map<String, Object> objs) {

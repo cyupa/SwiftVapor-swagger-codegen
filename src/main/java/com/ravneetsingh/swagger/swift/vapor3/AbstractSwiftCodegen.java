@@ -1,5 +1,6 @@
 package com.ravneetsingh.swagger.swift.vapor3;
 
+import io.swagger.codegen.v3.CodegenConfig;
 import io.swagger.codegen.v3.CodegenConstants;
 import io.swagger.codegen.v3.CodegenModel;
 import io.swagger.codegen.v3.CodegenProperty;
@@ -16,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,11 +29,16 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
+import com.samskivert.mustache.Template.Fragment;
+
+
 import static io.swagger.codegen.v3.generators.handlebars.ExtensionHelper.getBooleanValue;
 
 public abstract class AbstractSwiftCodegen extends DefaultCodegenConfig {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSwiftCodegen.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(AbstractSwiftCodegen.class);
 
     public static final String PROJECT_NAME = "projectName";
     public static final String RESPONSE_AS = "responseAs";
@@ -232,6 +240,19 @@ public abstract class AbstractSwiftCodegen extends DefaultCodegenConfig {
 //        supportingFiles.add(new SupportingFile("gitignore.mustache",
 //                "",
 //                ".gitignore"));
+        additionalProperties.put("lambdaTitlecase", new Mustache.Lambda(){
+            private String titleCase(final String input) {
+                    String output = input.substring(0, 1).toUpperCase() + input.substring(1);
+                    LOGGER.warn("lambdaTitlecase output:" + output);
+                    return output;
+            }
+
+            @Override
+            public void execute(Template.Fragment fragment, Writer writer) throws IOException {
+                    String text = fragment.execute();
+                    writer.write(titleCase(text));
+            }
+        });
     }
 
     @Override

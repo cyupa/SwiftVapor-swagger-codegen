@@ -28,7 +28,7 @@ public func routes(_ router: Router{{#apiInfo}}{{#apis}}, {{classVarName}}: {{cl
 {{/authMethods}}{{#apiInfo}}{{#apis}}
   //for {{classVarName}}
 {{#operations}}{{#operation}}{{#contents}}
-  {{#authMethods}}routerFor{{{name}}}{{/authMethods}}{{^authMethods}}router{{/authMethods}}.on(.{{httpMethod}}, at: SwaggerPath(path: "{{path}}")) { request -> Future<{{operationId}}Response> in
+  {{#authMethods}}routerFor{{{name}}}{{/authMethods}}{{^authMethods}}router{{/authMethods}}.on(.{{httpMethod}}, at: SwaggerPath(path: "{{path}}")) { request -> EventLoopFuture<{{operationId}}Response> in
 {{#formParams}}    let {{paramName}} = try request.content.syncGet(at: "{{baseName}}") as {{dataType}}
 {{/formParams}}{{#headerParams}}{{^items}}    if !request.http.headers.contains(name: "{{{baseName}}}") {
       throw Abort(.badRequest, reason: "Missing header: {{{baseName}}}")

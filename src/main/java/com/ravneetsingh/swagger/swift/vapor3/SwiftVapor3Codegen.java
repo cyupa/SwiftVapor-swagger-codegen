@@ -5,6 +5,12 @@ import io.swagger.codegen.v3.generators.DefaultCodegenConfig;
 
 import java.util.*;
 import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
+import com.samskivert.mustache.Template.Fragment;
 
 public class SwiftVapor3Codegen extends Swift4Codegen {
 
